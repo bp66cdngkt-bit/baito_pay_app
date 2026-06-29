@@ -11,6 +11,7 @@
 
 
 
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>バイト給料計算</title>
@@ -608,11 +609,11 @@
       </div>
 
       <div class="result-line">
-        <div class="result-label">合計金額</div>
+        <div class="result-label">支給額合計</div>
         <div class="result-value total" id="totalAmount">0円</div>
       </div>
       <div class="result-line">
-        <div class="result-label">うち、手当</div>
+        <div class="result-label">手当合計</div>
         <div class="result-value" id="allowanceAmount">0円</div>
       </div>
 
@@ -726,7 +727,7 @@
     </section>
   </div>
 
-  <div class="toast" id="toast">保存しました</div>
+  <div class="toast" id="toast"></div>
 
   <script>
     const OLD_LS_SETTINGS = "baito_calc_settings_v2";
@@ -930,15 +931,15 @@
     function resolveBreakRange(shiftStart, shiftEnd, startStr, endStr, index) {
       const label = `休憩${index + 1}`;
       if (!startStr && !endStr) return null;
-      if (!startStr || !endStr) throw new Error(`${label}の開始・終了を両方入力してください`);
+      if (!startStr || !endStr) throw new Error(`${label}の開始・終了時刻が未入力です`);
 
       const baseStart = parseTimeToMinutes(startStr);
       let baseEnd = parseTimeToMinutes(endStr);
-      if (baseStart === null || baseEnd === null) throw new Error(`${label}の時間が正しくないよ`);
+      if (baseStart === null || baseEnd === null) throw new Error(`${label}の時刻が正しくありません`);
       if (baseEnd <= baseStart) baseEnd += 1440;
       const duration = baseEnd - baseStart;
-      if (duration <= 0) throw new Error(`${label}の時間が0分になってる`);
-      if (duration >= shiftEnd - shiftStart) throw new Error(`${label}が勤務時間以上になってる`);
+      if (duration <= 0) throw new Error(`${label}の時間が0分です`);
+      if (duration >= shiftEnd - shiftStart) throw new Error(`${label}が勤務時間以上です`);
 
       let best = null;
       for (let day = -1; day <= 2; day++) {
@@ -948,8 +949,8 @@
         if (!best || overlap > best.overlap) best = { start, end, overlap };
       }
 
-      if (!best || best.overlap <= 0) throw new Error(`${label}が勤務時間と重なってないよ`);
-      if (best.overlap < duration) throw new Error(`${label}が勤務時間外にかかってるよ`);
+      if (!best || best.overlap <= 0) throw new Error(`${label}は勤務時間と重なっていません`);
+      if (best.overlap < duration) throw new Error(`${label}が勤務時間外に含まれています`);
       return {
         start: best.start,
         end: best.end,
@@ -970,7 +971,7 @@
 
       ranges.sort((a, b) => a.start - b.start);
       for (let i = 1; i < ranges.length; i++) {
-        if (ranges[i].start < ranges[i - 1].end) throw new Error("休憩時間が重なってるよ");
+        if (ranges[i].start < ranges[i - 1].end) throw new Error("休憩時間が重なっています");
       }
       return ranges;
     }
@@ -989,7 +990,7 @@
       const endStr = $("endTime").value;
       const range = getShiftRange(startStr, endStr);
       if (!range) {
-        toast("開始・終了時間を入力してください");
+        toast("勤務開始・終了時間が未入力です");
         return;
       }
 
@@ -997,13 +998,13 @@
       try {
         breakRanges = readBreakRanges(range);
       } catch (error) {
-        toast(error.message || "休憩時間を確認してください");
+        toast(error.message || "休憩時間の確認が必要です");
         return;
       }
 
       const breakMinutes = totalBreakMinutes(breakRanges);
       if (breakMinutes >= range.rawMinutes) {
-        toast("休憩が勤務時間以上になってる");
+        toast("休憩時間が勤務時間以上です");
         return;
       }
 
@@ -1286,18 +1287,18 @@
       if (!currentResult) return;
       $("savePreview").innerHTML = `
         <div class="money-list">
-          <div class="money-row"><span>合計金額</span><b>${yenAmount(currentResult.total)}</b></div>
-          <div class="money-row"><span>うち、手当</span><b>${yenAmount(currentResult.allowanceTotal)}</b></div>
+          <div class="money-row"><span>支給額合計</span><b>${yenAmount(currentResult.total)}</b></div>
+          <div class="money-row"><span>手当合計</span><b>${yenAmount(currentResult.allowanceTotal)}</b></div>
           <div class="money-row"><span>基本給</span><b>${yenAmount(currentResult.basePay)}</b></div>
-          <div class="money-row"><span>勤務</span><b>${currentResult.start} → ${currentResult.end}</b></div>
-          <div class="money-row"><span>休憩</span><b>${escapeHtml(breaksText((currentResult.breaks || []).map(br => ({ displayStart: br.start, displayEnd: br.end }))))}</b></div>
+          <div class="money-row"><span>勤務時間</span><b>${currentResult.start} → ${currentResult.end}</b></div>
+          <div class="money-row"><span>休憩時間</span><b>${escapeHtml(breaksText((currentResult.breaks || []).map(br => ({ displayStart: br.start, displayEnd: br.end }))))}</b></div>
         </div>
       `;
     }
 
     function saveCurrentResult() {
       if (!currentResult) {
-        toast("先に計算してください");
+        toast("先に計算が必要です");
         return;
       }
       const name = $("saveName").value.trim() || `${new Date().toLocaleDateString("ja-JP")}の勤務`;
@@ -1321,13 +1322,13 @@
             <div class="saved-top">
               <div>
                 <div class="saved-name">${escapeHtml(item.name || "保存データ")}</div>
-                <div class="saved-details">${escapeHtml(created)} / ${escapeHtml(item.start)} → ${escapeHtml(item.end)} / 休憩 ${hoursText(item.breakMinutes || 0)}</div>
+                <div class="saved-details">${escapeHtml(created)} / ${escapeHtml(item.start)} → ${escapeHtml(item.end)} / 休憩時間 ${hoursText(item.breakMinutes || 0)}</div>
               </div>
               <button class="danger-btn" data-action="deleteSaved">削除</button>
             </div>
             <div class="money-list">
-              <div class="money-row"><span>合計金額</span><b>${yenAmount(item.total || 0)}</b></div>
-              <div class="money-row"><span>うち、手当</span><b>${yenAmount(item.allowanceTotal || 0)}</b></div>
+              <div class="money-row"><span>支給額合計</span><b>${yenAmount(item.total || 0)}</b></div>
+              <div class="money-row"><span>手当合計</span><b>${yenAmount(item.allowanceTotal || 0)}</b></div>
             </div>
           </article>
         `;
@@ -1377,7 +1378,7 @@
     });
     $("openSave").addEventListener("click", () => {
       if (!currentResult) {
-        toast("先に計算してください");
+        toast("先に計算が必要です");
         return;
       }
       $("saveName").value = "";
