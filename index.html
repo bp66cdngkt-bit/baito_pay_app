@@ -8,6 +8,7 @@
 
 
 
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>バイト給料計算</title>
@@ -301,8 +302,8 @@
       inset: 0;
       background: rgba(15, 23, 42, 0.42);
       z-index: 50;
-      padding: 14px;
-      align-items: flex-end;
+      padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(14px + var(--safe-bottom));
+      align-items: center;
       justify-content: center;
     }
 
@@ -314,7 +315,7 @@
       max-height: min(88vh, 760px);
       overflow: auto;
       background: var(--card);
-      border-radius: 28px 28px 20px 20px;
+      border-radius: 28px;
       padding: 18px 16px calc(18px + var(--safe-bottom));
       box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.22);
     }
@@ -775,21 +776,32 @@
     function defaultSettings() {
       return {
         hourlyWage: 1200,
-        allowances: [
-          {
-            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-            name: "深夜手当",
-            enabled: true,
-            type: "time",
-            start: "22:00",
-            end: "05:00",
-            timeCalcMode: "percent",
-            percent: 25,
-            perHour: 0,
-            fixedAmount: 0,
-          },
-        ],
+        allowances: [],
       };
+    }
+
+    function isOldDefaultNightAllowance(a) {
+      return a
+        && a.name === "深夜手当"
+        && a.type === "time"
+        && a.start === "22:00"
+        && a.end === "05:00"
+        && Number(a.percent) === 25
+        && Number(a.fixedAmount || 0) === 0;
+    }
+
+    function normalizeSettings(parsed) {
+      const base = {
+        ...defaultSettings(),
+        ...parsed,
+        allowances: Array.isArray(parsed.allowances) ? parsed.allowances : [],
+      };
+
+      if (base.allowances.length === 1 && isOldDefaultNightAllowance(base.allowances[0])) {
+        base.allowances = [];
+      }
+
+      return base;
     }
 
     function loadSettings() {
@@ -797,11 +809,9 @@
         const raw = localStorage.getItem(LS_SETTINGS);
         if (!raw) return defaultSettings();
         const parsed = JSON.parse(raw);
-        return {
-          ...defaultSettings(),
-          ...parsed,
-          allowances: Array.isArray(parsed.allowances) ? parsed.allowances : defaultSettings().allowances,
-        };
+        const normalized = normalizeSettings(parsed);
+        localStorage.setItem(LS_SETTINGS, JSON.stringify(normalized));
+        return normalized;
       } catch {
         return defaultSettings();
       }
@@ -905,7 +915,7 @@
     function resolveBreakRange(shiftStart, shiftEnd, startStr, endStr, index) {
       const label = `休憩${index + 1}`;
       if (!startStr && !endStr) return null;
-      if (!startStr || !endStr) throw new Error(`${label}の開始・終了を両方入れてね`);
+      if (!startStr || !endStr) throw new Error(`${label}の開始・終了を両方入力してください`);
 
       const baseStart = parseTimeToMinutes(startStr);
       let baseEnd = parseTimeToMinutes(endStr);
@@ -964,7 +974,7 @@
       const endStr = $("endTime").value;
       const range = getShiftRange(startStr, endStr);
       if (!range) {
-        toast("開始・終了時間を入れてね");
+        toast("開始・終了時間を入力してください");
         return;
       }
 
@@ -972,7 +982,7 @@
       try {
         breakRanges = readBreakRanges(range);
       } catch (error) {
-        toast(error.message || "休憩時間を確認してね");
+        toast(error.message || "休憩時間を確認してください");
         return;
       }
 
@@ -1106,7 +1116,6 @@
     function syncSettingsFromForm() {
       settings.hourlyWage = clampNumber($("hourlyWage").value, 0);
       saveSettings();
-      toast("設定を保存したよ");
       if (currentResult) calculate();
     }
 
@@ -1240,10 +1249,8 @@
 
       if (previous) {
         settings.allowances[editIndex] = allowance;
-        toast("変更を保存したよ");
       } else {
         settings.allowances.push(allowance);
-        toast("手当を追加したよ");
       }
 
       saveSettings();
@@ -1274,7 +1281,7 @@
 
     function saveCurrentResult() {
       if (!currentResult) {
-        toast("先に計算してね");
+        toast("先に計算してください");
         return;
       }
       const name = $("saveName").value.trim() || `${new Date().toLocaleDateString("ja-JP")}の勤務`;
@@ -1282,7 +1289,6 @@
       saveSavedItems();
       renderSavedList();
       closeModal("saveModal");
-      toast("計算結果を保存したよ");
     }
 
     function renderSavedList() {
@@ -1355,7 +1361,7 @@
     });
     $("openSave").addEventListener("click", () => {
       if (!currentResult) {
-        toast("先に計算してね");
+        toast("先に計算してください");
         return;
       }
       $("saveName").value = "";
@@ -1405,7 +1411,7 @@
         if (editingAllowanceId === deletedId) resetAllowanceForm();
         saveSettings();
         renderAllowanceList();
-        toast("削除したよ");
+  
         if (currentResult) calculate();
       }
     });
@@ -1432,7 +1438,7 @@
       savedItems = savedItems.filter(item => item.id !== card.dataset.id);
       saveSavedItems();
       renderSavedList();
-      toast("保存データを削除したよ");
+
     });
 
     applySettingsToForm();
