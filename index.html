@@ -775,6 +775,11 @@
       maximumFractionDigits: 0,
     });
 
+    function yenAmount(value) {
+      const num = Number(value);
+      return yen.format(Number.isFinite(num) ? Math.trunc(num) : 0);
+    }
+
     const $ = (id) => document.getElementById(id);
 
     let currentResult = null;
@@ -1068,13 +1073,13 @@
       if (!currentResult) return;
       $("resultStart").textContent = currentResult.start;
       $("resultEnd").textContent = currentResult.end;
-      $("totalAmount").textContent = yen.format(Math.round(currentResult.total));
-      $("allowanceAmount").textContent = yen.format(Math.round(currentResult.allowanceTotal));
+      $("totalAmount").textContent = yenAmount(currentResult.total);
+      $("allowanceAmount").textContent = yenAmount(currentResult.allowanceTotal);
 
       const lines = [
         `<div><strong>実働：</strong>${hoursText(currentResult.workMinutes)}（休憩 ${hoursText(currentResult.breakMinutes)}）</div>`,
         `<div><strong>休憩：</strong>${escapeHtml(breaksText((currentResult.breaks || []).map(br => ({ displayStart: br.start, displayEnd: br.end }))))}</div>`,
-        `<div><strong>基本給：</strong>${yen.format(Math.round(currentResult.basePay))}</div>`,
+        `<div><strong>基本給：</strong>${yenAmount(currentResult.basePay)}</div>`,
       ];
 
       const visibleBreakdown = currentResult.breakdown.filter((b) => b.minutes === null || b.minutes > 0);
@@ -1082,7 +1087,7 @@
         lines.push(`<div style="margin-top:8px;"><strong>手当内訳</strong></div>`);
         visibleBreakdown.forEach((b) => {
           const time = b.minutes === null ? "" : ` / 対象 ${hoursText(b.minutes)}`;
-          lines.push(`<div>${escapeHtml(b.name)}：${yen.format(Math.round(b.amount))}${time}<br>${escapeHtml(b.detail)}</div>`);
+          lines.push(`<div>${escapeHtml(b.name)}：${yenAmount(b.amount)}${time}<br>${escapeHtml(b.detail)}</div>`);
         });
       } else {
         lines.push(`<div>手当なし</div>`);
@@ -1281,9 +1286,9 @@
       if (!currentResult) return;
       $("savePreview").innerHTML = `
         <div class="money-list">
-          <div class="money-row"><span>合計金額</span><b>${yen.format(Math.round(currentResult.total))}</b></div>
-          <div class="money-row"><span>うち、手当</span><b>${yen.format(Math.round(currentResult.allowanceTotal))}</b></div>
-          <div class="money-row"><span>基本給</span><b>${yen.format(Math.round(currentResult.basePay))}</b></div>
+          <div class="money-row"><span>合計金額</span><b>${yenAmount(currentResult.total)}</b></div>
+          <div class="money-row"><span>うち、手当</span><b>${yenAmount(currentResult.allowanceTotal)}</b></div>
+          <div class="money-row"><span>基本給</span><b>${yenAmount(currentResult.basePay)}</b></div>
           <div class="money-row"><span>勤務</span><b>${currentResult.start} → ${currentResult.end}</b></div>
           <div class="money-row"><span>休憩</span><b>${escapeHtml(breaksText((currentResult.breaks || []).map(br => ({ displayStart: br.start, displayEnd: br.end }))))}</b></div>
         </div>
@@ -1321,8 +1326,8 @@
               <button class="danger-btn" data-action="deleteSaved">削除</button>
             </div>
             <div class="money-list">
-              <div class="money-row"><span>合計金額</span><b>${yen.format(Math.round(item.total || 0))}</b></div>
-              <div class="money-row"><span>うち、手当</span><b>${yen.format(Math.round(item.allowanceTotal || 0))}</b></div>
+              <div class="money-row"><span>合計金額</span><b>${yenAmount(item.total || 0)}</b></div>
+              <div class="money-row"><span>うち、手当</span><b>${yenAmount(item.allowanceTotal || 0)}</b></div>
             </div>
           </article>
         `;
