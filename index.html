@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111111">
+
+
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>バイト給料計算</title>
@@ -711,8 +718,45 @@
   <div class="toast" id="toast">保存しました</div>
 
   <script>
-    const LS_SETTINGS = "baito_calc_settings_v2";
-    const LS_SAVED = "baito_calc_saved_v2";
+    const OLD_LS_SETTINGS = "baito_calc_settings_v2";
+    const OLD_LS_SAVED = "baito_calc_saved_v2";
+    const DEVICE_ID_KEY = "baito_calc_device_id_v1";
+
+    function getOrCreateDeviceId() {
+      try {
+        let id = localStorage.getItem(DEVICE_ID_KEY);
+        if (!id) {
+          id = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          localStorage.setItem(DEVICE_ID_KEY, id);
+        }
+        return id;
+      } catch {
+        return `fallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      }
+    }
+
+    // 保存内容はクラウドへ送らず、この端末・このブラウザ内だけで使う。
+    // 端末ごとに別IDを作り、保存キーも分ける。
+    const DEVICE_ID = getOrCreateDeviceId();
+    const LS_SETTINGS = `baito_calc_settings_v3_${DEVICE_ID}`;
+    const LS_SAVED = `baito_calc_saved_v3_${DEVICE_ID}`;
+
+    function migrateOldLocalData() {
+      try {
+        if (!localStorage.getItem(LS_SETTINGS)) {
+          const oldSettings = localStorage.getItem(OLD_LS_SETTINGS);
+          if (oldSettings) localStorage.setItem(LS_SETTINGS, oldSettings);
+        }
+        if (!localStorage.getItem(LS_SAVED)) {
+          const oldSaved = localStorage.getItem(OLD_LS_SAVED);
+          if (oldSaved) localStorage.setItem(LS_SAVED, oldSaved);
+        }
+      } catch {
+        // localStorageが使えない環境では何もしない
+      }
+    }
+
+    migrateOldLocalData();
 
     const yen = new Intl.NumberFormat("ja-JP", {
       style: "currency",
