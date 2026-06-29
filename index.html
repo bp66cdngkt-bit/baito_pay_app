@@ -10,6 +10,7 @@
 
 
 
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>バイト給料計算</title>
@@ -219,11 +220,15 @@
 
     .danger-btn {
       min-height: 40px;
+      min-width: 64px;
       padding: 8px 13px;
       border-radius: 999px;
       background: #fee4e2;
       color: var(--danger);
       font-weight: 800;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      text-align: center;
     }
 
     .ghost-btn {
@@ -460,6 +465,11 @@
       align-items: center;
       gap: 10px;
       margin-bottom: 10px;
+    }
+
+    .allowance-top > div,
+    .saved-top > div {
+      min-width: 0;
     }
 
     .allowance-name,
@@ -1067,9 +1077,10 @@
         `<div><strong>基本給：</strong>${yen.format(Math.round(currentResult.basePay))}</div>`,
       ];
 
-      if (currentResult.breakdown.length) {
+      const visibleBreakdown = currentResult.breakdown.filter((b) => b.minutes === null || b.minutes > 0);
+      if (visibleBreakdown.length) {
         lines.push(`<div style="margin-top:8px;"><strong>手当内訳</strong></div>`);
-        currentResult.breakdown.forEach((b) => {
+        visibleBreakdown.forEach((b) => {
           const time = b.minutes === null ? "" : ` / 対象 ${hoursText(b.minutes)}`;
           lines.push(`<div>${escapeHtml(b.name)}：${yen.format(Math.round(b.amount))}${time}<br>${escapeHtml(b.detail)}</div>`);
         });
